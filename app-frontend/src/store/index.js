@@ -2,98 +2,61 @@ import { createStore } from "vuex";
 import axios from "axios";
 
 const store = createStore({
+  // state consists of only one array which i am filling with 
+  // transactions and then with help of getters i read everywhere in the app 
   state: {
     transactions: [],
-    accountInfo: {},
-    eachPostInfo: {},
+    error: ""
   },
+  // getters has only one method which is responsible for reading/providing state of the transactions
   getters: {
     getAllTransactions: (state) => state.transactions,
+    getError: (state) => state.error,
   },
+  // Actions are methods where i am calling api's and then with help of mutations i am setting the values to array 
   actions: {
-    async fetchTransactions({ commit }) {
-      const response = await axios.get(
-        "https://infra.devskills.app/api/accounting/transactions"
-      );
-      console.log(response.data);
-      // commit("setAllTransactions", response.data);
-    },
     async submitForm({ commit }, formData) {
+          let accountInformation = null
       const headers = {
         "Content-Type": "application/json",
       };
-      // console.log(formData.accountID, formData.amount);
       const url = "https://infra.devskills.app/api/accounting/transactions";
-      let response2 = await axios
-      .get(
-        `https://infra.devskills.app/api/accounting/accounts/${formData.accountID}`
+      await axios
+        .get(
+          `https://infra.devskills.app/api/accounting/accounts/${formData.accountID}`
         )
         .then((res) => {
-          commit("setAccountInfo", res.data);
+          accountInformation = res.data
+          // commit("setAccountInfo", res.data);
         })
-        .then((err) => console.log(err));
-        let response1 = await axios({
-          method: "POST",
-          url: url,
-          data: {
-            account_id: formData.accountID,
-            amount: formData.amount,
-          },
-          headers: headers,
-        }).then((res) => {
-          commit("setEachTransactionInfo", res.data)
-          .then((err) =>
-            console.log(err)
-          );
-          console.log("post Response ", res);
-        });
-      //   function(response) {
-      //   console.log("2 ",response.data.account_id, response.data.amount, response.data.transaction_id)
-      //   const transactionId = response.data.transaction_id
-      //   /* const url = `https://infra.devskills.app/api/accounting/accounts/${response.data.transaction_id}`
-      //   console.log("yes ",transactionId, url)
-      //   const response = axios.get(url)
-      //   if(response) {console.log("account response: ", response)}
-      //   else {
-      //     console.log("account response error: ")
-      //   }
-      //   if(response.data.transaction_id != null) {
-      //   } */
-      //   commit("setNewTransition", response.data)
-      //   return response
-      // }
-      //   )
-      // .then((error) => console.log("error-------", error));
-    },
-    findAccount(transactionId) {
-      console.log(transactionId);
-      const url = "https://infra.devskills.app/api/accounting/accounts";
-      const response = axios.get(url + transactionId);
-      if (response !== null || response !== undefined) {
-        console.log("account response: ", response);
-      } else {
-        console.log("account response error: ");
-      }
-      /* .then(response => console.log("account response: ", response))
-      .then(error =>  console.log("response error. ", error)) */
+        .then((err) => commit("setError", `Error while getting response for account information with ${formData.accountID} and error is ${err}`));
+        // I use post request after reading each account 
+      await axios({
+        method: "POST",
+        url: url,
+        data: {
+          account_id: formData.accountID,
+          amount: formData.amount,
+        },
+        headers: headers,
+      })
+        .then((res) => {
+          const data = res.data
+          res.data["balance"] = accountInformation.balance
+          // Here i am populating the response object with one more balance inquiry property for simplicity 
+          commit("setAllTransactions", res.data);
+        })
+        .then((err) => commit("setError", `Error while posting transaction and error is ${err}`));
     },
   },
+  // Mutations are use to set value of the states here i 
+  // have only one method which is pushing new object/transaction to transactions array
   mutations: {
-    setAllTransactions: (state, allTransactions) => {
-      //console.log(state, allTransactions);
-      state.transactions = allTransactions;
-    },
-    setNewTransition: (state, newTransition) => {
-      state.transactions.unshift(newTransition);
-    },
-    setEachTransactionInfo: (state, payload) => {
+    setAllTransactions: (state, payload) => {
       console.log(state, payload);
-      state.eachPostInfo = payload;
+      state.transactions.unshift(payload);
     },
-    setAccountInfo: (state, payload) => {
-      console.log(state, payload);
-      state.accountInfo = payload;
-    },
+    setError: (state, payload) => state.error = payload
   },
 });
 

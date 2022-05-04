@@ -1,18 +1,21 @@
-
-
 <template>
   <div class="float-container">
     <div class="float-child1">
       <p class="header">Submit new transaction</p>
       <form @submit.prevent="checkForm" class="form">
         <span>Account ID</span>
-        <input class="inputs" v-model="formData.accountID" type="text" />
+        <input class="inputs" ref="account" v-model="formData.accountID" type="text" />
         <span>Amount</span>
-        <input class="inputs" v-model="formData.amount" type="number" />
+        <input class="inputs" ref="amount" v-model="formData.amount" type="number" />
         <div class="input-div">
         </div>
         <input class="submit" value="Submit" :disabled="formData.accountID == '' || formData.amount == ''" type="submit" />
       </form>
+      <div v-if="getError" class="error-div">
+        <h3 class="alert">
+          {{ getError }}
+        </h3>
+      </div>
     </div>
 
     <div class="float-child2">
@@ -23,12 +26,25 @@
         :key="index"
         class="all-transactions"
       >
-        <div class="transactions-cell">
-          <p>Transferred ${{ transaction.amount }} from account {{ transaction.transaction_id }}</p>
+      <!-- There are 2 dev's which shows the deposit or withdrawal based on the amount is (+) or (-) -->
+        <div v-if="transaction.amount < 0" class="withdraw-transaction">
+          <div class="transactions-cell">
+          <p>Transferred ${{ transaction.amount * (-1) }} to account {{ transaction.transaction_id }}</p>
           <p>
-            The current account balance <span class="">$77</span>
+            The current account balance <span class="">${{transaction.balance}}</span>
           </p>
         </div>
+        </div>
+
+        <div v-if="transaction.amount > 0" class="div deposit-tran">
+          <div class="transactions-cell">
+          <p>Transferred ${{ transaction.amount }} from account {{ transaction.transaction_id }}</p>
+          <p>
+            The current account balance <span class="">${{transaction.balance}}</span>
+          </p>
+        </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -52,18 +68,15 @@ export default {
   },
   methods: {
     ...mapActions(["fetchTransactions", "submitForm"]),
-    checkForm: function (e) {
-      //console.log("lkjaölsdkjflk", this.formData);
-      /*       if (this.accountID && this.amount) {
-        return true;
-      } */
+    checkForm: function () {
       this.submitForm(this.formData);
+      setTimeout(() => {
+        this.formData.accountID = ""
+      this.formData.amount = "" 
+      }, 2500);
     },
   },
-  created() {
-    //this.fetchTransactions();
-  },
-  computed: mapGetters(["getAllTransactions"]),
+  computed: {...mapGetters(["getAllTransactions", "getError"])},
 };
 </script>
 
@@ -89,6 +102,12 @@ export default {
 .float-child1 .form {
   display: flex;
   flex-direction: column;
+}
+.float-child1 .error-div {
+  background: rgba(234, 37, 37, 0.722);
+  border-radius: 10px;
+  padding: 10px;
+  color: white;
 }
 .float-child2 {
   width: 100%;
